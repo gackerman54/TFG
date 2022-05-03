@@ -1,0 +1,61 @@
+{
+	"nRouters" : 3,
+	"nSwitches": 1,
+	"nMV": 2,
+	"nVPCS":1,
+	"routers": [
+		{
+			"nombre": "R1",
+			"puertosEnUso": 2,
+			"maquinasConectadas": [
+					"ESW1",
+					 "R2"
+				]
+		},
+		{
+		"nombre": "R2",
+			"puertosEnUso": 2,
+			"maquinasConectadas": [
+					"R1",
+					 "R3"
+				]
+		},
+		{
+		"nombre": "R3",
+			"puertosEnUso": 2,
+			"maquinasConectadas": [
+					"R2",
+					 "PC1"
+				]
+		}
+	],
+	"switches": {
+		"nombre": "ESW1",
+				"puertosEnUso": 3,
+				"maquinasConectadas": [
+						"MV1",
+						 "MV2",
+						 "R1"
+					]
+			},
+	"MV": [
+		{
+		"nombre": "MV1",
+		"nombreMV": "UbuntuV"
+		"puertosEnUso": 1,
+		"maquinasConectadas":"ESW1"
+		},
+		{
+		"nombre": "MV2",
+		"nombreMV": "Ubuntu Server"
+		"puertosEnUso": 1,
+		"maquinasConectadas":"ESW1"
+		}
+	],
+	"VPCS": {
+				"nombre": "PC1",
+				"puertosEnUso": 1,
+				"maquinasConectadas":"R3"
+	}
+	
+}
