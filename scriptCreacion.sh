@@ -6,9 +6,6 @@ buscar_id()
 #Comprobacion de argumentos
 #Comprobacion de comandos (which)
 
-
-read -p "Introduce el nivel de dificultad " dificultad
-
 #Creacion de proyecto y abrirlo
 id=$(curl -s -X POST http://localhost:3080/v2/projects -d '{"name": "taller"}' | jq  -r ".project_id")
 echo Se ha creado el proyecto, el id es: $id
@@ -71,8 +68,47 @@ do
 done
 
 
-#jq '.[] | select(.name=="R1")' prueba.json | jq ".node_id"
-
 #Segun nivel de dificultad configuro hasta un nivel u otro
+# Dificultad = 0: Todo configurado
+# Dificultad = 1: Solo routers configuados
+# Dificultad = 2: Solo switch configurado (VLAN incluidas)
+# Dificultad = 3: Nada configurado
+
+case $2 in 
+	
+	2)
+		for i in $(seq 1 $(jq -r ".nSwitches" $1) )
+		do
+			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
+			buscar_id
+			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+			do
+				echo 'interface FastEthernet1/'$(($j-1))'\n!\n switchport'$(if [ $(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1) != "trunk" ]; then echo " access vlan "$(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1); else echo " mode trunk"; fi )	>> ConfigSwitch.txt
+			done
+			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i4_startup-config.cfg --data-binary @ConfigSwitch.txt
+			rm ConfigSwitch.txt
+		done
+	;;
+	1)
+		for i in $(seq 1 $(jq -r ".nRouters" $1) )
+		do
+			nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
+			buscar_id
+			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+			for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1) )
+			do
+				if [ -z $(jq -r ".routers[$(($i-1))].vlan[$(($j-1))]") ]
+				then
+					echo a
+				fi
+			done
+	;;
+	0)
+		echo "Nivel de dificultad 0 seleccionado"
+	;;
+esac
+#Cerrar proyecto
+#				echo 'interface FastEthernet1/'$(($j-1))'\n!\n switchport'$(if [ $(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" Config.json) != "trunk" ]; then echo " access vlan "$(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" Config.json); else echo " mode trunk"; fi )	
 #Eliminar ficheros intermedios
 
