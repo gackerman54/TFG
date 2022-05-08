@@ -4,8 +4,57 @@ buscar_id()
 	idEncontrada=$(curl -s -X GET http://localhost:3080/v2/projects/$id/nodes | jq '.[] | select(.name=='$nombreABuscar')' | jq ".node_id")
 }
 #Comprobacion de argumentos
-#Comprobacion de comandos (which)
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]
+then
+	echo "Este script permite la creación de un proyecto GNS3 a partir de un fichero JSON
+	
+Los argumentos válidos son los siguientes:
 
+Primer argumento:
+
+	-h o --help	 				Se muestra una pequeña ayuda de uso para el usuario
+	ruta_a_un_fichero_JSON 		Ruta al fichero JSON de configuracion
+	
+Segundo argumento:
+
+	nivel_de_dificultad 		Nivel de dificultad deseado
+	
+El nivel de dificultad puede ser uno de estos tres valores:
+
+	0 	Se le da al usuario la red totalmente configurada y lista para su uso
+	1	Se configurarán solamente los routers
+	2	Se configurarán solamente los switches
+	3	No se configurará nada
+
+Este script ha sido desarrollado por Gustavo González Ramírez como parte de su TFG en la Universidad de Valladolid"
+	exit 1
+fi
+if [ $# != 2 ] 
+then
+	echo "Número de argumentos inválido" > /dev/stderr
+	exit 2
+fi
+if ! [ -f $1 ]
+then
+	echo "El fichero JSON seleccionado no existe" > /dev/stderr
+	exit 3
+fi
+if [ $2 -gt 3 ] || [ $2 -lt 0 ]
+then
+	echo "Nivel de dificultad inválido" > /dev/stderr
+	exit 4
+fi
+#Comprobacion de comandos (which)
+if [ "$(which jq)" = "" ]
+then
+	echo "Es necesario instalar el comando jq para utilizar el script" > /dev/stderr
+	exit 5
+fi
+if [ "$(which curl)" = "" ]
+then
+	echo "Es necesario instalar el comando curl para utilizar el script" > /dev/stderr
+	exit 5
+fi
 #Creacion de proyecto y abrirlo
 id=$(curl -s -X POST http://localhost:3080/v2/projects -d '{"name": '$(jq ".nombreTaller" $1)'}' | jq  -r ".project_id")
 echo Se ha creado el proyecto, el id es: $id
@@ -16,7 +65,7 @@ curl -s -X POST http://localhost:3080/v2/projects/$id/open >> /dev/null
 #Creacion de Switches
 for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 do
-	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"symbol":":/symbols/multilayer_switch.svg","name":'$(jq ".switches[(($i-1))].nombre" $1)',"node_type":"dynamips","port_name_format":"Ethernet{0}","port_segment_size":0,"properties":{"auto_delete_disks":false,"aux":null,"clock_divisor":8,"disk0":1,"disk1":0,"dynamips_id":4,"exec_area":64,"idlemax":500,"idlepc":"0x60c09aa0","idlesleep":30,"image":"c3725-adventerprisek9-mz.124-15.T14.bin","image_md5sum":"42baf17af10d9a1471bf542f0bfd07c7","iomem":5,"mac_addr":"c204.4bd0.0000","mmap":true,"nvram":256,"platform":"c3725","ram":256,"slot0":"GT96100-FE","slot1":"NM-16ESW","slot2":"NM-16ESW","sparsemem":true,"system_id":"FTX0945W0MY","usage":"","wic0":"WIC-1T","wic1":"WIC-2T","wic2":null},"compute_id":"local","x":'$(jq -r ".switches[(($i-1))].x" $1)', "y":'$(jq -r ".switches[(($i-1))].y" $1)'}' >> /dev/null
+	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local", "name":'$(jq ".switches[(($i-1))].nombre" $1)', "node_type":"ethernet_switch", "symbol":"/symbols/ethernet_switch.svg", "x":'$(jq ".switches[(($i-1))].x" $1)', "y": '$(jq ".switches[(($i-1))].y" $1)'}' >> /dev/null
 done
 
 #Creacion de routers
@@ -30,6 +79,7 @@ for i in $(seq 1 $(jq -r ".nMV" $1) )
 do
 	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local","console":null,"console_auto_start":false,"console_type":"none","custom_adapters":[],"first_port_name":"","height":59,"locked":false,"name":'$(jq ".MV[(($i-1))].nombre" $1)',"node_type":"virtualbox","port_name_format":"Ethernet{0}","port_segment_size":0,"properties":{"adapter_type":"Intel PRO/1000 MT Desktop (82540EM)","adapters":1,"headless":false,"linked_clone":false,"on_close":"power_off","ram":512,"usage":"","use_any_adapter":false,"vmname":'$(jq ".MV[(($i-1))].nombreMV" $1)'},"symbol":":/symbols/vbox_guest.svg","x":'$(jq -r ".MV[(($i-1))].x" $1)', "y":'$(jq -r ".MV[(($i-1))].y" $1)'}' >> /dev/null
 done
+
 #Creacion de VPCS
 for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 do
@@ -39,19 +89,22 @@ done
 #Conectar los nodos
 
 #Conecto switches
-for i in $(seq 1 $(jq -r ".nSwitches" $1) )
-do
-	nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
-	buscar_id
-	maquina1=$idEncontrada
-	for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+if [ $2 != 2 ] && [ $2 != 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 	do
-		nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($j-1))]" $1)
+		nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 		buscar_id
-		maquina2=$idEncontrada
-		curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 1, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+		maquina1=$idEncontrada
+		for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+		do
+			nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($j-1))]" $1)
+			buscar_id
+			maquina2=$idEncontrada
+			curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+		done
 	done
-done
+fi
 #Conecto routers
 for i in $(seq 1 $(jq -r ".nRouters" $1) )
 do
@@ -81,13 +134,23 @@ case $2 in
 		do
 			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 			buscar_id
+			maquina1=$idEncontrada
 			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+			echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
 			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
 			do
-				echo 'interface FastEthernet1/'$(($j-1))'\n!\n switchport'$(if [ $(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1) != "trunk" ]; then echo " access vlan "$(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1); else echo " mode trunk"; fi )	>> ConfigSwitch.txt
+				echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
 			done
-			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i4_startup-config.cfg --data-binary @ConfigSwitch.txt
+			echo -n ']}}' >> ConfigSwitch.txt
+			curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
 			rm ConfigSwitch.txt
+			for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+			do
+				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
+				buscar_id
+				maquina2=$idEncontrada
+				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+			done
 		done
 	;;
 	1)
@@ -151,13 +214,23 @@ case $2 in
 		do
 			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 			buscar_id
+			maquina1=$idEncontrada
 			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+			echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
 			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
 			do
-				echo 'interface FastEthernet1/'$(($j-1))'\n!\n switchport'$(if [ $(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1) != "trunk" ]; then echo " access vlan "$(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" $1); else echo " mode trunk"; fi )	>> ConfigSwitch.txt
+				echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
 			done
-			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i4_startup-config.cfg --data-binary @ConfigSwitch.txt
+			echo -n ']}}' >> ConfigSwitch.txt
+			curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
 			rm ConfigSwitch.txt
+			for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+			do
+				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
+				buscar_id
+				maquina2=$idEncontrada
+				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+			done
 		done
 		#Configuracion Routers
 		for i in $(seq 1 $(jq -r ".nRouters" $1) )
@@ -226,6 +299,5 @@ case $2 in
 	;;
 esac
 #Cerrar proyecto
-#				echo 'interface FastEthernet1/'$(($j-1))'\n!\n switchport'$(if [ $(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" Config.json) != "trunk" ]; then echo " access vlan "$(jq -r ".switches[$(($i-1))].vlan[$(($j-1))]" Config.json); else echo " mode trunk"; fi )	
 #Eliminar ficheros intermedios
 

@@ -83,7 +83,7 @@
 	],
 	"switches": [
 		{
-			"nombre": "ESW1",
+			"nombre": "Switch1",
 			"puertosEnUso": 3,
 			"maquinasConectadas": [
 					"MV1",
