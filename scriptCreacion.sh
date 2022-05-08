@@ -86,6 +86,7 @@ do
 	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"name": '$(jq ".VPCS[(($i-1))].nombre" $1)', "node_type": "vpcs", "compute_id": "local", "x":'$(jq -r ".VPCS[(($i-1))].x" $1)', "y":'$(jq -r ".VPCS[(($i-1))].y" $1)'}' >> /dev/null
 done
 
+echo "Se han creado todos los nodos"
 #Conectar los nodos
 
 #Conecto switches
@@ -120,6 +121,7 @@ do
 	done
 done
 
+echo "Se han conectado todos los nodos"
 
 #Segun nivel de dificultad configuro hasta un nivel u otro
 # Dificultad = 0: Todo configurado
@@ -152,6 +154,7 @@ case $2 in
 				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
 			done
 		done
+		echo "Nivel de dificultad seleccionado 2: Se han configurado los switches"
 	;;
 	1)
 		for i in $(seq 1 $(jq -r ".nRouters" $1) )
@@ -207,6 +210,7 @@ case $2 in
 			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
 			rm ConfigRouter.txt
 		done
+		echo "Nivel de dificultad seleccionado 1: Se han configurado todos los routers"
 	;;
 	0)
 		#Configuracion Switches
@@ -296,8 +300,10 @@ case $2 in
 			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/startup.vpc --data-binary @ConfigVPCS.txt
 			rm ConfigVPCS.txt
 		done
+		echo "Nivel de dificultad seleccionado 0: Se han configurado todos los nodos"
 	;;
 esac
 #Cerrar proyecto
-#Eliminar ficheros intermedios
+curl -s -X POST http://localhost:3080/v2/projects/$id/close >> /dev/null
+
 
