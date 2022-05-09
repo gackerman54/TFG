@@ -31,28 +31,30 @@ Este script ha sido desarrollado por Gustavo González Ramírez como parte de su
 fi
 if [ $# != 2 ] 
 then
-	echo "Número de argumentos inválido" > /dev/stderr
+	echo "Número de argumentos inválido.
+Usa la opción -h (--help) para consultar la ayuda." > /dev/stderr
 	exit 2
 fi
 if ! [ -f $1 ]
 then
-	echo "El fichero JSON seleccionado no existe" > /dev/stderr
+	echo "El fichero JSON seleccionado no existe." > /dev/stderr
 	exit 3
 fi
 if [ $2 -gt 3 ] || [ $2 -lt 0 ]
 then
-	echo "Nivel de dificultad inválido" > /dev/stderr
+	echo "Nivel de dificultad inválido.
+Usa la opción -h (--help) para consultar la ayuda." > /dev/stderr
 	exit 4
 fi
 #Comprobacion de comandos (which)
 if [ "$(which jq)" = "" ]
 then
-	echo "Es necesario instalar el comando jq para utilizar el script" > /dev/stderr
+	echo "Es necesario instalar el comando jq para utilizar el script." > /dev/stderr
 	exit 5
 fi
 if [ "$(which curl)" = "" ]
 then
-	echo "Es necesario instalar el comando curl para utilizar el script" > /dev/stderr
+	echo "Es necesario instalar el comando curl para utilizar el script." > /dev/stderr
 	exit 5
 fi
 #Creacion de proyecto y abrirlo
