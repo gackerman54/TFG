@@ -26,6 +26,8 @@ El nivel de dificultad puede ser uno de estos tres valores:
 	2	Se configurarán solamente los switches
 	3	No se configurará nada
 
+Tenga en cuenta que el script funcionará solamente si el servidor local GNS3 está activo.
+
 Este script ha sido desarrollado por Gustavo González Ramírez como parte de su TFG en la Universidad de Valladolid"
 	exit 1
 fi
