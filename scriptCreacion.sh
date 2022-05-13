@@ -1,7 +1,15 @@
 #!/bin/sh
-buscar_id()
+buscarId()
 {
 	idEncontrada=$(curl -s -X GET http://localhost:3080/v2/projects/$id/nodes | jq '.[] | select(.name=='$nombreABuscar')' | jq ".node_id")
+}
+cancelarComando()
+{
+	rm ConfigSwitch.txt 2> /dev/null
+	rm ConfigRouter.txt 2> /dev/null
+	rm ConfigVPCS.txt 2> /dev/null
+	curl -s -X DELETE http://localhost:3080/v2/projects/$id > /dev/null
+	exit 6
 }
 #Comprobacion de argumentos
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]
@@ -42,7 +50,7 @@ then
 	echo "El fichero JSON seleccionado no existe." > /dev/stderr
 	exit 3
 fi
-if [ $2 -gt 3 ] || [ $2 -lt 0 ]
+if [ $2 != 0 ] && [ $2 != 1 ] && [ $2 != 2 ] && [ $2 != 3 ]
 then
 	echo "Nivel de dificultad inválido.
 Usa la opción -h (--help) para consultar la ayuda." > /dev/stderr
@@ -64,67 +72,84 @@ id=$(curl -s -X POST http://localhost:3080/v2/projects -d '{"name": '$(jq ".nomb
 echo Se ha creado el proyecto, el id es: $id
 
 curl -s -X POST http://localhost:3080/v2/projects/$id/open >> /dev/null
+
+trap "cancelarComando" 2
 #Creacion de nodos
 
 #Creacion de Switches
-for i in $(seq 1 $(jq -r ".nSwitches" $1) )
-do
-	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local", "name":'$(jq ".switches[(($i-1))].nombre" $1)', "node_type":"ethernet_switch", "symbol":"/symbols/ethernet_switch.svg", "x":'$(jq ".switches[(($i-1))].x" $1)', "y": '$(jq ".switches[(($i-1))].y" $1)'}' >> /dev/null
-done
-
+if [ $(jq -r ".nSwitches" $1) -gt 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nSwitches" $1) )
+	do
+		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local", "name":'$(jq ".switches[(($i-1))].nombre" $1)', "node_type":"ethernet_switch", "symbol":"/symbols/ethernet_switch.svg", "x":'$(jq ".switches[(($i-1))].x" $1)', "y": '$(jq ".switches[(($i-1))].y" $1)'}' >> /dev/null
+	done
+fi
 #Creacion de routers
-for i in $(seq 1 $(jq -r ".nRouters" $1) )
-do
-	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"symbol": ":/symbols/router.svg", "name": '$(jq ".routers[(($i-1))].nombre" $1)', "properties": {"platform": "c2691", "nvram": 256, "image": "c2691-gns3-entservicesk9-mz.123-16.image", "ram": 192, "system_id": "FTX0945W0MY", "slot0": "GT96100-FE", "slot1": "null",  "idlepc": "0x606e0538"}, "compute_id": "local", "node_type": "dynamips", "x":'$(jq -r ".routers[(($i-1))].x" $1)', "y":'$(jq -r ".routers[(($i-1))].y" $1)'}' >> /dev/null
-done
+if [ $(jq -r ".nRouters" $1) -gt 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nRouters" $1) )
+	do
+		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"symbol": ":/symbols/router.svg", "name": '$(jq ".routers[(($i-1))].nombre" $1)', "properties": {"platform": "c2691", "nvram": 256, "image": "c2691-gns3-entservicesk9-mz.123-16.image", "ram": 192, "system_id": "FTX0945W0MY", "slot0": "GT96100-FE", "slot1": "null",  "idlepc": "0x606e0538"}, "compute_id": "local", "node_type": "dynamips", "x":'$(jq -r ".routers[(($i-1))].x" $1)', "y":'$(jq -r ".routers[(($i-1))].y" $1)'}' >> /dev/null
+	done
+fi
 
 #Creacion de MV
-for i in $(seq 1 $(jq -r ".nMV" $1) )
-do
-	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local","console":null,"console_auto_start":false,"console_type":"none","custom_adapters":[],"first_port_name":"","height":59,"locked":false,"name":'$(jq ".MV[(($i-1))].nombre" $1)',"node_type":"virtualbox","port_name_format":"Ethernet{0}","port_segment_size":0,"properties":{"adapter_type":"Intel PRO/1000 MT Desktop (82540EM)","adapters":1,"headless":false,"linked_clone":false,"on_close":"power_off","ram":512,"usage":"","use_any_adapter":false,"vmname":'$(jq ".MV[(($i-1))].nombreMV" $1)'},"symbol":":/symbols/vbox_guest.svg","x":'$(jq -r ".MV[(($i-1))].x" $1)', "y":'$(jq -r ".MV[(($i-1))].y" $1)'}' >> /dev/null
-done
-
+if [ $(jq -r ".nMV" $1) -gt 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nMV" $1) )
+	do
+		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"compute_id":"local","console":null,"console_auto_start":false,"console_type":"none","custom_adapters":[],"first_port_name":"","height":59,"locked":false,"name":'$(jq ".MV[(($i-1))].nombre" $1)',"node_type":"virtualbox","port_name_format":"Ethernet{0}","port_segment_size":0,"properties":{"adapter_type":"Intel PRO/1000 MT Desktop (82540EM)","adapters":1,"headless":false,"linked_clone":false,"on_close":"power_off","ram":512,"usage":"","use_any_adapter":false,"vmname":'$(jq ".MV[(($i-1))].nombreMV" $1)'},"symbol":":/symbols/vbox_guest.svg","x":'$(jq -r ".MV[(($i-1))].x" $1)', "y":'$(jq -r ".MV[(($i-1))].y" $1)'}' >> /dev/null
+	done
+fi
 #Creacion de VPCS
-for i in $(seq 1 $(jq -r ".nVPCS" $1) )
-do
-	curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"name": '$(jq ".VPCS[(($i-1))].nombre" $1)', "node_type": "vpcs", "compute_id": "local", "x":'$(jq -r ".VPCS[(($i-1))].x" $1)', "y":'$(jq -r ".VPCS[(($i-1))].y" $1)'}' >> /dev/null
-done
+if [ $(jq -r ".nVPCS" $1) -gt 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nVPCS" $1) )
+	do
+		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"name": '$(jq ".VPCS[(($i-1))].nombre" $1)', "node_type": "vpcs", "compute_id": "local", "x":'$(jq -r ".VPCS[(($i-1))].x" $1)', "y":'$(jq -r ".VPCS[(($i-1))].y" $1)'}' >> /dev/null
+	done
+fi
 
 echo "Se han creado todos los nodos"
 #Conectar los nodos
 
 #Conecto switches
-if [ $2 != 2 ] && [ $2 != 0 ]
+if [ $(jq -r ".nSwitches" $1) -gt 0 ]
 then
-	for i in $(seq 1 $(jq -r ".nSwitches" $1) )
-	do
-		nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
-		buscar_id
-		maquina1=$idEncontrada
-		for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+	if [ $2 != 2 ] && [ $2 != 0 ]
+	then
+		for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 		do
-			nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($j-1))]" $1)
-			buscar_id
+			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
+			buscarId
+			maquina1=$idEncontrada
+			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+			do
+				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($j-1))]" $1)
+				buscarId
+				maquina2=$idEncontrada
+				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+			done
+		done
+	fi
+fi
+#Conecto routers
+if [ $(jq -r ".nRouters" $1) -gt 0 ]
+then
+	for i in $(seq 1 $(jq -r ".nRouters" $1) )
+	do
+		nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
+		buscarId
+		maquina1=$idEncontrada
+		for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1) )
+		do
+			nombreABuscar=$(jq ".routers[(($i-1))].maquinasConectadas[(($j-1))]" $1)
+			buscarId
 			maquina2=$idEncontrada
 			curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
 		done
 	done
 fi
-#Conecto routers
-for i in $(seq 1 $(jq -r ".nRouters" $1) )
-do
-	nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
-	buscar_id
-	maquina1=$idEncontrada
-	for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1) )
-	do
-		nombreABuscar=$(jq ".routers[(($i-1))].maquinasConectadas[(($j-1))]" $1)
-		buscar_id
-		maquina2=$idEncontrada
-		curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
-	done
-done
-
 echo "Se han conectado todos los nodos"
 
 #Segun nivel de dificultad configuro hasta un nivel u otro
@@ -136,174 +161,190 @@ echo "Se han conectado todos los nodos"
 case $2 in 
 	
 	2)
-		for i in $(seq 1 $(jq -r ".nSwitches" $1) )
-		do
-			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
-			buscar_id
-			maquina1=$idEncontrada
-			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
-			echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
-			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+		if [ $(jq -r ".nSwitches" $1) -gt 0 ]
+		then
+			for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 			do
-				echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
+				nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
+				buscarId
+				maquina1=$idEncontrada
+				idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+				echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
+				for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+				do
+					echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
+				done
+				echo -n ']}}' >> ConfigSwitch.txt
+				curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
+				rm ConfigSwitch.txt
+				for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+				do
+					nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
+					buscarId
+					maquina2=$idEncontrada
+					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+				done
 			done
-			echo -n ']}}' >> ConfigSwitch.txt
-			curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
-			rm ConfigSwitch.txt
-			for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
-			do
-				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
-				buscar_id
-				maquina2=$idEncontrada
-				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
-			done
-		done
-		echo "Nivel de dificultad seleccionado 2: Se han configurado los switches"
+			echo "Nivel de dificultad seleccionado 2: Se han configurado los switches"
+		else
+			echo "Nivel de dificultad seleccionado 2: No existe ningún Switch que configurar."
+		fi
 	;;
 	1)
-		for i in $(seq 1 $(jq -r ".nRouters" $1) )
-		do
-			nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
-			buscar_id
-			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
-			#DHCP
-			if [ "$(jq ".routers[$(($i-1))].dhcpPool" $1)" != "null" ]
-			then
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
-				do
-					echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
-				done
-			fi
-			#Host DNS
-			if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
-			then
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].dnsHost | length" $1))
-				do
-					echo 'ip host '$(jq -r ".routers[$(($i-1))].dnsHost[(($j-1))]" $1)'\n!' >> ConfigRouter.txt
-				done
-			fi
-			#IP y VLAN
-			for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1))
+		if [ $(jq -r ".nRouters" $1) -gt 0 ]
+		then
+			for i in $(seq 1 $(jq -r ".nRouters" $1) )
 			do
-				echo 'interface FastEthernet0/'$(($j-1))'\n '$(if [ "$(jq -r ".routers[$(($i-1))].vlan[(($j-1))]" $1)" = "null" ]; then echo "ip address "$(jq -r ".routers[(($i-1))].ip[(($j-1))]" $1); else echo "no ip address"; fi )'\n no shutdown\n duplex auto\n speed auto\n!' >> ConfigRouter.txt
-				if [ "$(jq -r ".routers[$(($i-1))].vlan[0]" $1)" != "null" ] 
+				nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
+				buscarId
+				idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+				#DHCP
+				if [ "$(jq ".routers[$(($i-1))].dhcpPool" $1)" != "null" ]
 				then
-					if [ "$(jq -r ".routers[(($i-1))].vlan[(($j-1))]" $1)" != "null" ]
-					then
-						for k in $(seq 1 $(jq -r ".routers[(($i-1))].vlan[(($j-1))] | length" $1))
-						do
-							echo 'interface FastEthernet 0/'$(($j-1))'.'$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n encapsulation dot1Q '$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n ip address '$(jq -r ".routers[(($i-1))].ip[(($j-1))][(($k-1))]" $1)'\n no snmp trap link-status\n!' >> ConfigRouter.txt
-						done
-					fi
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
+					do
+						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
+					done
 				fi
-			done
-			#RIP
-			if [ "$(jq -r ".routers[$(($i-1))].rip" $1)" != "null" ]
-			then
-				echo 'router rip\n version 2' >> ConfigRouter.txt
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].rip | length" $1))
-				do 
-					echo ' network '$(jq -r ".routers[(($i-1))].rip[(($j-1))]" $1) >> ConfigRouter.txt
+				#Host DNS
+				if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
+				then
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dnsHost | length" $1))
+					do
+						echo 'ip host '$(jq -r ".routers[$(($i-1))].dnsHost[(($j-1))]" $1)'\n!' >> ConfigRouter.txt
+					done
+				fi
+				#IP y VLAN
+				for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1))
+				do
+					echo 'interface FastEthernet0/'$(($j-1))'\n '$(if [ "$(jq -r ".routers[$(($i-1))].vlan[(($j-1))]" $1)" = "null" ]; then echo "ip address "$(jq -r ".routers[(($i-1))].ip[(($j-1))]" $1); else echo "no ip address"; fi )'\n no shutdown\n duplex auto\n speed auto\n!' >> ConfigRouter.txt
+					if [ "$(jq -r ".routers[$(($i-1))].vlan[0]" $1)" != "null" ] 
+					then
+						if [ "$(jq -r ".routers[(($i-1))].vlan[(($j-1))]" $1)" != "null" ]
+						then
+							for k in $(seq 1 $(jq -r ".routers[(($i-1))].vlan[(($j-1))] | length" $1))
+							do
+								echo 'interface FastEthernet 0/'$(($j-1))'.'$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n encapsulation dot1Q '$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n ip address '$(jq -r ".routers[(($i-1))].ip[(($j-1))][(($k-1))]" $1)'\n no snmp trap link-status\n!' >> ConfigRouter.txt
+							done
+						fi
+					fi
 				done
-			fi
-			#DNS
-			if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
-			then
-				echo '!\nip dns server\nip http server' >> ConfigRouter.txt
-			fi
-			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
-			rm ConfigRouter.txt
-		done
-		echo "Nivel de dificultad seleccionado 1: Se han configurado todos los routers"
+				#RIP
+				if [ "$(jq -r ".routers[$(($i-1))].rip" $1)" != "null" ]
+				then
+					echo 'router rip\n version 2' >> ConfigRouter.txt
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].rip | length" $1))
+					do 
+						echo ' network '$(jq -r ".routers[(($i-1))].rip[(($j-1))]" $1) >> ConfigRouter.txt
+					done
+				fi
+				#DNS
+				if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
+				then
+					echo '!\nip dns server\nip http server' >> ConfigRouter.txt
+				fi
+				curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
+				rm ConfigRouter.txt
+			done
+			echo "Nivel de dificultad seleccionado 1: Se han configurado todos los routers"
+		else
+			echo "Nivel de dificultad seleccionado 1: No existe ningún router para configurar."
+		fi
 	;;
 	0)
 		#Configuracion Switches
-		for i in $(seq 1 $(jq -r ".nSwitches" $1) )
-		do
-			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
-			buscar_id
-			maquina1=$idEncontrada
-			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
-			echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
-			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+		if [ $(jq -r ".nSwitches" $1) -gt 0 ]
+		then
+			for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 			do
-				echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
+				nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
+				buscarId
+				maquina1=$idEncontrada
+				idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+				echo -n '{"properties":{"ports_mapping":[' >> ConfigSwitch.txt
+				for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+				do
+					echo -n '{"name":"Ethernet'$(($j-1))'","port_number":'$(($j-1))',"type":'$(if [ "$(jq -r ".switches[(($i-1))].vlan[(($j-1))]" $1)" = "trunk" ]; then echo '"dot1q","vlan": 1'; else echo '"access","vlan": '$(jq ".switches[(($i-1))].vlan[(($j-1))]" $1)''; fi )}''$(if ! [ $j -eq $(jq ".switches[(($i-1))].puertosEnUso" $1) ]; then echo ","; fi )'' >> ConfigSwitch.txt
+				done
+				echo -n ']}}' >> ConfigSwitch.txt
+				curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
+				rm ConfigSwitch.txt
+				for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+				do
+					nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
+					buscarId
+					maquina2=$idEncontrada
+					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+				done
 			done
-			echo -n ']}}' >> ConfigSwitch.txt
-			curl -s -X PUT http://localhost:3080/v2/projects/$id/nodes/$idEncontrada --data-binary @ConfigSwitch.txt >> /dev/null
-			rm ConfigSwitch.txt
-			for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
-			do
-				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
-				buscar_id
-				maquina2=$idEncontrada
-				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
-			done
-		done
+		fi
 		#Configuracion Routers
-		for i in $(seq 1 $(jq -r ".nRouters" $1) )
-		do
-			nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
-			buscar_id
-			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
-			#DHCP
-			if [ "$(jq ".routers[$(($i-1))].dhcpPool" $1)" != "null" ]
-			then
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
-				do
-					echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
-				done
-			fi
-			#Host DNS
-			if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
-			then
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].dnsHost | length" $1))
-				do
-					echo 'ip host '$(jq -r ".routers[$(($i-1))].dnsHost[(($j-1))]" $1)'\n!' >> ConfigRouter.txt
-				done
-			fi
-			#IP y VLAN
-			for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1))
+		if [ $(jq -r ".nRouters" $1) -gt 0 ]
+		then
+			for i in $(seq 1 $(jq -r ".nRouters" $1) )
 			do
-				echo 'interface FastEthernet0/'$(($j-1))'\n '$(if [ "$(jq -r ".routers[$(($i-1))].vlan[(($j-1))]" $1)" = "null" ]; then echo "ip address "$(jq -r ".routers[(($i-1))].ip[(($j-1))]" $1); else echo "no ip address"; fi )'\n no shutdown\n duplex auto\n speed auto\n!' >> ConfigRouter.txt
-				if [ "$(jq -r ".routers[$(($i-1))].vlan[0]" $1)" != "null" ] 
+				nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
+				buscarId
+				idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+				#DHCP
+				if [ "$(jq ".routers[$(($i-1))].dhcpPool" $1)" != "null" ]
 				then
-					if [ "$(jq -r ".routers[(($i-1))].vlan[(($j-1))]" $1)" != "null" ]
-					then
-						for k in $(seq 1 $(jq -r ".routers[(($i-1))].vlan[(($j-1))] | length" $1))
-						do
-							echo 'interface FastEthernet 0/'$(($j-1))'.'$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n encapsulation dot1Q '$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n ip address '$(jq -r ".routers[(($i-1))].ip[(($j-1))][(($k-1))]" $1)'\n no snmp trap link-status\n!' >> ConfigRouter.txt
-						done
-					fi
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
+					do
+						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
+					done
 				fi
-			done
-			#RIP
-			if [ "$(jq -r ".routers[$(($i-1))].rip" $1)" != "null" ]
-			then
-				echo 'router rip\n version 2' >> ConfigRouter.txt
-				for j in $(seq 1 $(jq -r ".routers[(($i-1))].rip | length" $1))
-				do 
-					echo ' network '$(jq -r ".routers[(($i-1))].rip[(($j-1))]" $1) >> ConfigRouter.txt
+				#Host DNS
+				if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
+				then
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dnsHost | length" $1))
+					do
+						echo 'ip host '$(jq -r ".routers[$(($i-1))].dnsHost[(($j-1))]" $1)'\n!' >> ConfigRouter.txt
+					done
+				fi
+				#IP y VLAN
+				for j in $(seq 1 $(jq -r ".routers[(($i-1))].puertosEnUso" $1))
+				do
+					echo 'interface FastEthernet0/'$(($j-1))'\n '$(if [ "$(jq -r ".routers[$(($i-1))].vlan[(($j-1))]" $1)" = "null" ]; then echo "ip address "$(jq -r ".routers[(($i-1))].ip[(($j-1))]" $1); else echo "no ip address"; fi )'\n no shutdown\n duplex auto\n speed auto\n!' >> ConfigRouter.txt
+					if [ "$(jq -r ".routers[$(($i-1))].vlan[0]" $1)" != "null" ] 
+					then
+						if [ "$(jq -r ".routers[(($i-1))].vlan[(($j-1))]" $1)" != "null" ]
+						then
+							for k in $(seq 1 $(jq -r ".routers[(($i-1))].vlan[(($j-1))] | length" $1))
+							do
+								echo 'interface FastEthernet 0/'$(($j-1))'.'$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n encapsulation dot1Q '$(jq -r ".routers[(($i-1))].vlan[(($j-1))][(($k-1))]" $1)'\n ip address '$(jq -r ".routers[(($i-1))].ip[(($j-1))][(($k-1))]" $1)'\n no snmp trap link-status\n!' >> ConfigRouter.txt
+							done
+						fi
+					fi
 				done
-			fi
-			#DNS
-			if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
-			then
-				echo '!\nip dns server\nip http server' >> ConfigRouter.txt
-			fi
-			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
-			rm ConfigRouter.txt
-		done
-		#Configuracion VPCS
-		for i in $(seq 1 $(jq -r ".nVPCS" $1) )
-		do
-			nombreABuscar=$(jq ".VPCS[(($i-1))].nombre" $1)
-			buscar_id
-			idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
-			echo 'ip '$(jq -r ".VPCS[(($i-1))].ip" $1) > ConfigVPCS.txt
-			curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/startup.vpc --data-binary @ConfigVPCS.txt
-			rm ConfigVPCS.txt
-		done
+				#RIP
+				if [ "$(jq -r ".routers[$(($i-1))].rip" $1)" != "null" ]
+				then
+					echo 'router rip\n version 2' >> ConfigRouter.txt
+					for j in $(seq 1 $(jq -r ".routers[(($i-1))].rip | length" $1))
+					do 
+						echo ' network '$(jq -r ".routers[(($i-1))].rip[(($j-1))]" $1) >> ConfigRouter.txt
+					done
+				fi
+				#DNS
+				if [ "$(jq -r ".routers[$(($i-1))].dnsHost" $1)" != "null" ]
+				then
+					echo '!\nip dns server\nip http server' >> ConfigRouter.txt
+				fi
+				curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
+				rm ConfigRouter.txt
+			done
+			#Configuracion VPCS
+			for i in $(seq 1 $(jq -r ".nVPCS" $1) )
+			do
+				nombreABuscar=$(jq ".VPCS[(($i-1))].nombre" $1)
+				buscarId
+				idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
+				echo 'ip '$(jq -r ".VPCS[(($i-1))].ip" $1) > ConfigVPCS.txt
+				curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/startup.vpc --data-binary @ConfigVPCS.txt
+				rm ConfigVPCS.txt
+			done
+		fi
 		echo "Nivel de dificultad seleccionado 0: Se han configurado todos los nodos"
 	;;
 esac
