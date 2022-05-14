@@ -204,7 +204,7 @@ then
 		then
 			echo "ERROR: La configuración de las interfaces no es correcta" > /dev/stderr
 		else
-			echo "La configuración de las interfaces es correcta"
+			echo "Configuración de las interfaces correcta"
 		fi
 		rm ConfigInterfaces.txt
 		#RIP
@@ -225,7 +225,7 @@ then
 			then
 				echo "ERROR: La configuración RIP no es correcta" > /dev/stderr
 			else
-				echo "La configuración RIP es correcta"
+				echo "Configuración RIP correcta"
 			fi
 			rm ConfigRIP.txt
 		fi
@@ -253,7 +253,7 @@ for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 		then
 			echo "ERROR: La configuración del VPC no es correcta" > /dev/stderr
 		else
-			echo "La configuración del VPC es correcta"
+			echo "Configuración del VPC correcta"
 		fi
 		rm ConfigVPC.txt
 		rm ConfigVPCACorregir.txt
