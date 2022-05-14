@@ -8,8 +8,9 @@ cancelarComando()
 	rm ConfigSwitch.txt 2> /dev/null
 	rm ConfigRouter.txt 2> /dev/null
 	rm ConfigVPCS.txt 2> /dev/null
-	curl -s -X DELETE http://localhost:3080/v2/projects/$id > /dev/null
-	exit 6
+	curl -s -X POST http://localhost:3080/v2/projects/$id/close >> /dev/null
+	curl -s -X DELETE http://localhost:3080/v2/projects/$id >> /dev/null
+	exit 7
 }
 #Comprobacion de argumentos
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]
@@ -66,6 +67,12 @@ if [ "$(which curl)" = "" ]
 then
 	echo "Es necesario instalar el comando curl para utilizar el script." > /dev/stderr
 	exit 5
+fi
+#Comprobacion de comunicacion con el servidor local de GNS3
+if [ "$(curl -s -X GET http://localhost:3080/v2/version 2> /dev/null)" = "" ]
+then
+	echo "No se ha podido establecer la comunicación con el servidor local GNS3. Revisa que esté activo y vuelve a intentarlo." > /dev/stderr
+	exit 6
 fi
 #Creacion de proyecto y abrirlo
 id=$(curl -s -X POST http://localhost:3080/v2/projects -d '{"name": '$(jq ".nombreTaller" $1)'}' | jq  -r ".project_id")
@@ -203,7 +210,7 @@ case $2 in
 				then
 					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
 					do
-						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
+						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n   network '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n   default-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n   dns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
 					done
 				fi
 				#Host DNS
@@ -291,7 +298,7 @@ case $2 in
 				then
 					for j in $(seq 1 $(jq -r ".routers[(($i-1))].dhcpPool | length" $1))
 					do
-						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n!\n\tnetwork '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n\tdefault-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n\tdns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
+						echo 'ip dhcp pool '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].nombre" $1)'\n   network '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].red" $1)'\n   default-router '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].routerPorDefecto" $1)'\n   dns-server '$(jq -r ".routers[(($i-1))].dhcpPool[(($j-1))].dns" $1)'\n!' >> ConfigRouter.txt
 					done
 				fi
 				#Host DNS
@@ -348,7 +355,5 @@ case $2 in
 		echo "Nivel de dificultad seleccionado 0: Se han configurado todos los nodos"
 	;;
 esac
-#Cerrar proyecto
-curl -s -X POST http://localhost:3080/v2/projects/$id/close >> /dev/null
 
 

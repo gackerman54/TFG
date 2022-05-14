@@ -9,7 +9,7 @@ cancelarComando()
 	rm ConfigRIP.txt 2> /dev/null
 	rm ConfigVPC.txt 2> /dev/null
 	rm ConfigVPCACorregir.txt 2> /dev/null
-	exit 6
+	exit 7
 }
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]
 then
@@ -50,6 +50,7 @@ then
 	echo "El proyecto seleccionado no existe." > /dev/stderr
 	exit 4
 fi
+#Comprobacion de los comandos
 if [ "$(which jq)" = "" ]
 then
 	echo "Es necesario instalar el comando jq para utilizar el script." > /dev/stderr
@@ -70,6 +71,12 @@ then
 	echo "Es necesario instalar el comando diff para utilizar el script." > /dev/stderr
 	exit 5
 fi
+#Comprobacion de comunicacion con el servidor local de GNS3
+if [ "$(curl -s -X GET http://localhost:3080/v2/version 2> /dev/null)" = "" ]
+then
+	echo "No se ha podido establecer la comunicación con el servidor local GNS3. Revisa que esté activo y vuelve a intentarlo." > /dev/stderr
+	exit 6
+fi
 # $1 = JSON $2= id
 trap "cancelarComando" 2
 #Corregir switches
@@ -79,7 +86,7 @@ then
 	do
 		vlanCorrecto=1
 		nombreSwitch=$(jq ".switches[(($i-1))].nombre" $1)
-		echo Comprobación Switch $nombreSwitch
+		echo "Comprobación Switch $nombreSwitch \n"
 		vlans=$(curl -s -X GET http://localhost:3080/v2/projects/$2/nodes | jq '.[] | select(.name=='$nombreSwitch')' | jq '.properties.ports_mapping')
 		j=0
 		until [ $j = $(echo $vlans | jq "length") ] || [ $vlanCorrecto = 0 ]
@@ -100,7 +107,12 @@ then
 		fi
 			j=$(($j+1))
 		done
-		echo Switches: $vlanCorrecto
+		if [ $vlanCorrecto = 0 ]
+		then
+			echo "ERROR: La configuración del Switch no es correcta" > /dev/stderr
+		else
+			echo "Configuración del switch correcta"
+		fi
 	done
 fi
 #Corregir routers
@@ -110,7 +122,7 @@ then
 	do
 		dhcpCorrecto=1
 		nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
-		echo Comprobación Router $nombreABuscar
+		echo "\nComprobación Router $nombreABuscar \n"
 		idEncontrada=$(curl -s -X GET http://localhost:3080/v2/projects/$2/nodes | jq '.[] | select(.name=='$nombreABuscar')' | jq ".node_id")
 		idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
 		curl -s -X GET http://localhost:3080/v2/projects/$2/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg > ConfigRouter.txt
@@ -128,7 +140,12 @@ then
 				fi
 				j=$(($j+1))
 			done
-			echo DHCP: $dhcpCorrecto
+			if [ $dhcpCorrecto = 0 ]
+			then
+				echo "ERROR: La configuración del DHCP no es correcta" > /dev/stderr
+			else
+				echo "Configuración DHCP correcta"
+			fi
 			rm ConfigDHCP.txt
 		fi
 		#DNS
@@ -154,7 +171,12 @@ then
 			then
 				dnsCorrecto=0
 			fi
-			echo DNS: $dnsCorrecto
+			if [ $dnsCorrecto = 0 ]
+			then
+				echo "ERROR: La configuración DNS no es correcta" > /dev/stderr
+			else
+				echo "Configuración DNS correcta"
+			fi
 			rm ConfigDNS.txt
 		fi
 		#IP y VLAN
@@ -177,8 +199,13 @@ then
 		if [ "$(diff -w ResultadoGREP.txt ConfigInterfaces.txt)" != "" ]
 			then
 				interfacesCorrecto=0
-			fi
-		echo Interfaces: $interfacesCorrecto
+		fi
+		if [ $interfacesCorrecto = 0 ]
+		then
+			echo "ERROR: La configuración de las interfaces no es correcta" > /dev/stderr
+		else
+			echo "La configuración de las interfaces es correcta"
+		fi
 		rm ConfigInterfaces.txt
 		#RIP
 		if [ "$(jq -r ".routers[$(($i-1))].rip" $1)" != "null" ]
@@ -194,7 +221,12 @@ then
 			then
 				RIPCorrecto=0
 			fi
-			echo RIP: $RIPCorrecto
+			if [ $RIPCorrecto = 0 ]
+			then
+				echo "ERROR: La configuración RIP no es correcta" > /dev/stderr
+			else
+				echo "La configuración RIP es correcta"
+			fi
 			rm ConfigRIP.txt
 		fi
 		rm ConfigRouter.txt
@@ -207,7 +239,7 @@ for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 	do
 		vpcCorrecto=1
 		nombreABuscar=$(jq ".VPCS[(($i-1))].nombre" $1)
-		echo Comprobación VPCS $nombreABuscar
+		echo "\nComprobación VPCS $nombreABuscar"
 		idEncontrada=$(curl -s -X GET http://localhost:3080/v2/projects/$2/nodes | jq '.[] | select(.name=='$nombreABuscar')' | jq ".node_id")
 		idEncontrada=$(echo $idEncontrada|sed -e 's|["'\'']||g')
 		curl -s -X GET http://localhost:3080/v2/projects/$2/nodes/$idEncontrada/files/startup.vpc > ConfigVPC.txt
@@ -217,13 +249,16 @@ for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 		then
 			vpcCorrecto=0
 		fi
-		echo VPC $vpcCorrecto
+		if [ $vpcCorrecto = 0 ]
+		then
+			echo "ERROR: La configuración del VPC no es correcta" > /dev/stderr
+		else
+			echo "La configuración del VPC es correcta"
+		fi
 		rm ConfigVPC.txt
 		rm ConfigVPCACorregir.txt
 	done
 fi
-#Cerrar proyecto
-curl -s -X POST http://localhost:3080/v2/projects/$id/close >> /dev/null
 
 if [ -f ResultadoGREP.txt ]
 then
