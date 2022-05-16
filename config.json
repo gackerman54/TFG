@@ -110,7 +110,7 @@
 		},
 		{
 		"nombre": "MV2",
-		"nombreMV": "Ubuntu_Server",
+		"nombreMV": "UbuntuWeb",
 		"puertosEnUso": 1,
 		"maquinasConectadas":"ESW1",
 		"x":-132,
