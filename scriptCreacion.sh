@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/dash
 buscarId()
 {
 	idEncontrada=$(curl -s -X GET http://localhost:3080/v2/projects/$id/nodes | jq '.[] | select(.name=='$nombreABuscar')' | jq ".node_id")

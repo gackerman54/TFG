@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/dash
 cancelarComando()
 {
 	rm ConfigRouter.txt 2> /dev/null
