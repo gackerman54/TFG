@@ -341,7 +341,10 @@ case $2 in
 				curl -s -X POST http://localhost:3080/v2/projects/$id/nodes/$idEncontrada/files/configs/i$(echo $i)_startup-config.cfg --data-binary @ConfigRouter.txt
 				rm ConfigRouter.txt
 			done
-			#Configuracion VPCS
+		fi
+		#Configuracion VPCS
+		if [ $(jq -r ".VPCS" $1) -gt 0 ]
+		then
 			for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 			do
 				nombreABuscar=$(jq ".VPCS[(($i-1))].nombre" $1)
