@@ -96,7 +96,7 @@ if [ $(jq -r ".nRouters" $1) -gt 0 ]
 then
 	for i in $(seq 1 $(jq -r ".nRouters" $1) )
 	do
-		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"symbol": ":/symbols/router.svg", "name": '$(jq ".routers[(($i-1))].nombre" $1)', "properties": {"platform": "c2691", "nvram": 256, "image": "c2691-gns3-entservicesk9-mz.123-16.image", "ram": 192, "system_id": "FTX0945W0MY", "slot0": "GT96100-FE", "slot1": "null",  "idlepc": "0x606e0538"}, "compute_id": "local", "node_type": "dynamips", "x":'$(jq -r ".routers[(($i-1))].x" $1)', "y":'$(jq -r ".routers[(($i-1))].y" $1)'}' >> /dev/null
+		curl -s -X POST http://localhost:3080/v2/projects/$id/nodes -d '{"symbol": ":/symbols/router.svg", "name": '$(jq ".routers[(($i-1))].nombre" $1)', "properties": {"platform": "c2691", "nvram": 256, "image": "c2691-gns3-entservicesk9-mz.123-16.bin", "ram": 192, "system_id": "FTX0945W0MY", "slot0": "GT96100-FE", "slot1": "null",  "idlepc": "0x606e0538"}, "compute_id": "local", "node_type": "dynamips", "x":'$(jq -r ".routers[(($i-1))].x" $1)', "y":'$(jq -r ".routers[(($i-1))].y" $1)'}' >> /dev/null
 	done
 fi
 
@@ -343,7 +343,7 @@ case $2 in
 			done
 		fi
 		#Configuracion VPCS
-		if [ $(jq -r ".VPCS" $1) -gt 0 ]
+		if [ $(jq -r ".nVPCS" $1) -gt 0 ]
 		then
 			for i in $(seq 1 $(jq -r ".nVPCS" $1) )
 			do
