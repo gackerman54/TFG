@@ -1,6 +1,6 @@
 {
-	"nombreTaller": "taller",
-	"nRouters" : 3,
+	"nombreTaller": "prueba2",
+	"nRouters" : 2,
 	"nSwitches": 1,
 	"nMV": 2,
 	"nVPCS":1,
@@ -10,7 +10,7 @@
 			"puertosEnUso": 2,
 			"maquinasConectadas": [
 					"Switch1",
-					 "R2"
+					 "R3"
 				],
 			"vlan": [
 					[
@@ -45,36 +45,18 @@
 			"y":-156
 		},
 		{
-			"nombre": "R2",
-			"puertosEnUso": 2,
-			"maquinasConectadas": [
-					"R1",
-					"R3"
-				],
-			"ip": [
-				"192.168.3.2 255.255.255.0",
-				"192.168.4.1 255.255.255.0"
-				],
-			"rip": [
-				"192.168.3.0",
-				"192.168.4.0"
-			],
-			"x":-57,
-			"y":-287
-		},
-		{
 			"nombre": "R3",
 			"puertosEnUso": 2,
 			"maquinasConectadas": [
-					"R2",
+					"R1",
 					"PC1"
 				],
 			"ip": [
-				"192.168.4.2 255.255.255.0",
+				"192.168.3.2 255.255.255.0",
 				"192.168.5.1 255.255.255.0"
 				],
 			"rip": [
-				"192.168.4.0",
+				"192.168.3.0",
 				"192.168.5.0"
 			],
 			"x":75,

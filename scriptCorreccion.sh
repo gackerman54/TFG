@@ -86,10 +86,10 @@ then
 	do
 		vlanCorrecto=1
 		nombreSwitch=$(jq ".switches[(($i-1))].nombre" $1)
-		echo "Comprobación Switch $nombreSwitch \n"
+		echo "\nComprobación Switch $nombreSwitch \n"
 		vlans=$(curl -s -X GET http://localhost:3080/v2/projects/$2/nodes | jq '.[] | select(.name=='$nombreSwitch')' | jq '.properties.ports_mapping')
 		j=0
-		until [ $j = $(echo $vlans | jq "length") ] || [ $vlanCorrecto = 0 ]
+		until [ $j = $(jq ".switches[(($i-1))].vlan | length" $1) ] || [ $vlanCorrecto = 0 ]
 		do
 		tipoVlanACorregir=$(echo $vlans | jq -r ".[$j].type")
 		vlanACorregir=$(echo $vlans | jq -r ".[$j].vlan")

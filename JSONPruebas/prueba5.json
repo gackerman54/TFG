@@ -1,8 +1,8 @@
 {
-	"nombreTaller": "taller",
+	"nombreTaller": "prueba5",
 	"nRouters" : 3,
 	"nSwitches": 1,
-	"nMV": 2,
+	"nMV": 3,
 	"nVPCS":1,
 	"routers": [
 		{
@@ -15,13 +15,15 @@
 			"vlan": [
 					[
 						10,
-						20
+						20,
+						60
 					]
 			],
 			"ip":[
 					[
 					"192.168.1.1 255.255.255.0",
-					"192.168.2.1 255.255.255.0"
+					"192.168.2.1 255.255.255.0",
+					"192.168.6.1 255.255.255.0"
 					],
 					"192.168.3.1 255.255.255.0"
 			],
@@ -39,7 +41,8 @@
 			"rip": [
 					"192.168.1.0",
 					"192.168.2.0",
-					"192.168.3.0"
+					"192.168.3.0",
+					"192.168.6.0"
 				],
 			"x":-215,
 			"y":-156
@@ -84,16 +87,18 @@
 	"switches": [
 		{
 			"nombre": "Switch1",
-			"puertosEnUso": 3,
+			"puertosEnUso": 4,
 			"maquinasConectadas": [
 					"MV1",
 					 "MV2",
-					 "R1"
+					 "R1",
+					 "MV3"
 				],
 			"vlan": [
 					10,
 					20,
-					"trunk"
+					"trunk",
+					60
 			],
 			"x":-214,
 			"y":-3
@@ -104,7 +109,7 @@
 		"nombre": "MV1",
 		"nombreMV": "UbuntuV",
 		"puertosEnUso": 1,
-		"maquinasConectadas":"ESW1",
+		"maquinasConectadas":"Switch1",
 		"x":-309,
 		"y":134
 		},
@@ -112,19 +117,27 @@
 		"nombre": "MV2",
 		"nombreMV": "UbuntuWeb",
 		"puertosEnUso": 1,
-		"maquinasConectadas":"ESW1",
+		"maquinasConectadas":"Switch1",
 		"x":-132,
+		"y":127
+		},
+		{
+		"nombre": "MV3",
+		"nombreMV": "mallet",
+		"puertosEnUso": 1,
+		"maquinasConectadas":"Switch1",
+		"x":-10,
 		"y":127
 		}
 	],
 	"VPCS": [
 		{
-					"nombre": "PC1",
-					"puertosEnUso": 1,
-					"maquinasConectadas":"R3",
-					"ip": "192.168.5.2 192.168.5.1 24",
-					"x":77,
-					"y":-26
+			"nombre": "PC1",
+			"puertosEnUso": 1,
+			"maquinasConectadas":"Switch2",
+			"ip": "192.168.5.2 192.168.5.1 24",
+			"x":77,
+			"y":70
 		}
 	]
 }

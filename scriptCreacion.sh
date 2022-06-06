@@ -127,16 +127,26 @@ then
 	then
 		for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 		do
+			nombreSwitch=$(jq ".switches[(($i-1))].nombre" $1)
 			nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 			buscarId
 			maquina1=$idEncontrada
-			for j in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
-			do
-				nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($j-1))]" $1)
-				buscarId
-				maquina2=$idEncontrada
-				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
-			done
+			for k in $(seq 1 $(jq -r ".switches[(($i-1))].puertosEnUso" $1) )
+				do
+					nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
+					buscarId
+					maquina2=$idEncontrada
+					if [ "$(jq '.routers[] | select(.nombre=='$nombreABuscar')' $1)" != "" ]
+					then
+						puertoMaquina2=$(jq '.routers[] | select(.nombre== '$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					elif [ "$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 )" != "" ]
+					then
+						puertoMaquina2=$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					else
+						puertoMaquina2=0
+					fi
+					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": '$puertoMaquina2'}]}'  >> /dev/null
+				done
 		done
 	fi
 fi
@@ -145,6 +155,7 @@ if [ $(jq -r ".nRouters" $1) -gt 0 ]
 then
 	for i in $(seq 1 $(jq -r ".nRouters" $1) )
 	do
+		nombreRouter=$(jq ".routers[(($i-1))].nombre" $1)
 		nombreABuscar=$(jq ".routers[(($i-1))].nombre" $1)
 		buscarId
 		maquina1=$idEncontrada
@@ -153,7 +164,17 @@ then
 			nombreABuscar=$(jq ".routers[(($i-1))].maquinasConectadas[(($j-1))]" $1)
 			buscarId
 			maquina2=$idEncontrada
-			curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+			if [ "$(jq '.routers[] | select(.nombre=='$nombreABuscar')' $1)" != "" ]
+			then
+				puertoMaquina2=$(jq '.routers[] | select(.nombre== '$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreRouter')')
+				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": '$puertoMaquina2'}]}' >> /dev/null
+			elif [ "$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 )" != "" ]
+			then
+				echo 'Nada' >> /dev/null
+			else
+				puertoMaquina2=0
+				curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($j-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": '$puertoMaquina2'}]}' >> /dev/null
+			fi
 		done
 	done
 fi
@@ -172,6 +193,7 @@ case $2 in
 		then
 			for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 			do
+				nombreSwitch=$(jq ".switches[(($i-1))].nombre" $1)
 				nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 				buscarId
 				maquina1=$idEncontrada
@@ -189,7 +211,16 @@ case $2 in
 					nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
 					buscarId
 					maquina2=$idEncontrada
-					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+					if [ "$(jq '.routers[] | select(.nombre=='$nombreABuscar')' $1)" != "" ]
+					then
+						puertoMaquina2=$(jq '.routers[] | select(.nombre== '$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					elif [ "$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 )" != "" ]
+					then
+						puertoMaquina2=$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					else
+						puertoMaquina2=0
+					fi
+					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": '$puertoMaquina2'}]}'  >> /dev/null
 				done
 			done
 			echo "Nivel de dificultad seleccionado 2: Se han configurado los switches"
@@ -264,6 +295,7 @@ case $2 in
 		then
 			for i in $(seq 1 $(jq -r ".nSwitches" $1) )
 			do
+				nombreSwitch=$(jq ".switches[(($i-1))].nombre" $1)
 				nombreABuscar=$(jq ".switches[(($i-1))].nombre" $1)
 				buscarId
 				maquina1=$idEncontrada
@@ -281,7 +313,16 @@ case $2 in
 					nombreABuscar=$(jq ".switches[(($i-1))].maquinasConectadas[(($k-1))]" $1)
 					buscarId
 					maquina2=$idEncontrada
-					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": 0}]}' >> /dev/null
+					if [ "$(jq '.routers[] | select(.nombre=='$nombreABuscar')' $1)" != "" ]
+					then
+						puertoMaquina2=$(jq '.routers[] | select(.nombre== '$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					elif [ "$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 )" != "" ]
+					then
+						puertoMaquina2=$(jq '.switches[] | select(.nombre=='$nombreABuscar')' $1 | jq '.maquinasConectadas | index('$nombreSwitch')')
+					else
+						puertoMaquina2=0
+					fi
+					curl -s -X POST  http://localhost:3080/v2/projects/$id/links -d '{"nodes": [{"adapter_number": 0, "node_id": '$maquina1', "port_number": '$(echo $((($k-1))))'}, {"adapter_number": 0, "node_id": '$maquina2', "port_number": '$puertoMaquina2'}]}'  >> /dev/null
 				done
 			done
 		fi

@@ -1,6 +1,6 @@
 {
-	"nombreTaller": "taller",
-	"nRouters" : 3,
+	"nombreTaller": "prueba3",
+	"nRouters" : 4,
 	"nSwitches": 1,
 	"nMV": 2,
 	"nVPCS":1,
@@ -67,7 +67,7 @@
 			"puertosEnUso": 2,
 			"maquinasConectadas": [
 					"R2",
-					"PC1"
+					"R4"
 				],
 			"ip": [
 				"192.168.4.2 255.255.255.0",
@@ -79,6 +79,24 @@
 			],
 			"x":75,
 			"y":-150
+		},
+		{
+			"nombre": "R4",
+			"puertosEnUso": 2,
+			"maquinasConectadas": [
+					"R3",
+					"PC1"
+				],
+			"ip": [
+				"192.168.5.2 255.255.255.0",
+				"192.168.6.1 255.255.255.0"
+				],
+			"rip": [
+				"192.168.5.0",
+				"192.168.6.0"
+			],
+			"x":75,
+			"y":-26
 		}
 	],
 	"switches": [
@@ -119,12 +137,12 @@
 	],
 	"VPCS": [
 		{
-					"nombre": "PC1",
-					"puertosEnUso": 1,
-					"maquinasConectadas":"R3",
-					"ip": "192.168.5.2 192.168.5.1 24",
-					"x":77,
-					"y":-26
+			"nombre": "PC1",
+			"puertosEnUso": 1,
+			"maquinasConectadas":"R3",
+			"ip": "192.168.6.2 192.168.6.1 24",
+			"x":77,
+			"y":80
 		}
 	]
 }
