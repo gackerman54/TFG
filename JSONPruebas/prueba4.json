@@ -3,7 +3,7 @@
 	"nRouters" : 3,
 	"nSwitches": 2,
 	"nMV": 2,
-	"nVPCS":1,
+	"nVPCS":2,
 	"routers": [
 		{
 			"nombre": "R1",
@@ -100,9 +100,10 @@
 		},
 		{
 			"nombre": "Switch2",
-			"puertosEnUso": 2,
+			"puertosEnUso": 3,
 			"maquinasConectadas": [
 					"PC1",
+					"PC2",
 					 "R3"
 				],
 			"x":77,
@@ -133,7 +134,15 @@
 			"puertosEnUso": 1,
 			"maquinasConectadas":"Switch2",
 			"ip": "192.168.5.2 192.168.5.1 24",
-			"x":77,
+			"x":22,
+			"y":70
+		},
+				{
+			"nombre": "PC2",
+			"puertosEnUso": 1,
+			"maquinasConectadas":"Switch2",
+			"ip": "192.168.5.3 192.168.5.1 24",
+			"x":140,
 			"y":70
 		}
 	]
